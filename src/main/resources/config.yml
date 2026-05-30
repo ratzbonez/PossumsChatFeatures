@@ -1,0 +1,125 @@
+# # # # # # # # # # # # # # # # # # # # #
+#        POSSUM's CHAT FEATURES         #
+#             by RatzBonez              #
+# # # # # # # # # # # # # # # # # # # # #
+
+# # # # # # # # FEATURES  # # # # # # # #
+
+# Chat messages only - no UI blocking user view.
+# Local welcome message (for first time joining).
+# Global welcome message (for the first time joining).
+# Local welcome back message (for every time the user joins the game).
+# Global restart countdowns.
+# Sound configuration options for each chat message.
+
+# # # # # # # # CONFIGURATIONS # # # # # #
+
+# Enable or disable the plugin.
+enabled: true
+
+# Main color theme for chat text.
+# Accepted colors:
+# https://www.digminecraft.com/lists/color_list_pc.php
+themeColor: light_purple
+
+# Configuration settings for general chat messages.
+messages:
+  # The main style for chat text.
+  # Options: "bold", "italic", "normal"
+  style: "bold"
+
+  # Message that is displayed only to the user when they join for the first time.
+  localWelcomeMessage: "{color}{style}Welcome to Moonshire, &f{style}{username}{color}{style}!"
+
+  # Message that is displayed only to the user when they are welcomed back.
+  localReturnMessage: "{color}{style}Welcome back to Moonshire, &f{style}{username}{color}{style}!"
+
+  # Message that is displayed to the entire server when a player joins for the first time.
+  globalWelcomeMessage:
+    "{color}{style}{username} &f{style}has joined Moonshire for
+    the first time."
+
+  # Subtext for the global welcome message.
+  globalWelcomeSubtitle: "&f&oWelcome them!"
+
+# On player join...
+join:
+  # Disable default join message, ex. PO55UM joined the game.
+  suppressDefaultJoinMessage: false
+
+  # Sound settings for when a player joins for the first time.
+  firstJoinSound:
+    # Toggle whether the sound is played.
+    enabled: true
+
+    # Choose a sound to play.
+    # Sound list:
+    # https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html
+    sound: BLOCK_AMETHYST_BLOCK_CHIME
+
+    # Choose a volume for the sound, enter as a value from 0.0 to 1.0, with 0.0 being silent.
+    volume: 1.0
+
+    # Choose a pitch for the sound, enter as a value from 0.5 to 2.0, with 1.0 being normal.
+    pitch: 1.3
+
+# Fake join and leave messages for the user who runs the command.
+# intended for use with /vanish, if desired.
+fakeMessages:
+  # Toggle whether fake messages are enabled.
+  enabled: true
+
+# Settings for restart messages.
+restart:
+  #Specify the time that the server restart takes place. This plugin does not restart the server itself, only announces it.
+  # "00:00 - 12am"
+  time: "00:00"
+
+  # Sound settings for when a restart reminder is displayed in chat.
+  sound:
+    # Toggle whether the sound is played.
+    enabled: true
+
+    # Choose a sound to play.
+    # Sound list:
+    # https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html
+    sound: BLOCK_NOTE_BLOCK_BELL
+
+    # Choose a volume for the sound, enter as a value from 0.0 to 1.0, with 0.0 being silent.
+    volume: 0.8
+
+    # Choose a pitch for the sound, enter as a value from 0.5 to 2.0, with 1.0 being normal.
+    pitch: 1.25
+
+    # Choose a pitch step for the sound, this is how much the pitch descends during countdown.
+    pitchStep: 0.075
+
+  # Warnings for server restart.
+  # Specify the number of seconds before restart, and the message to be displayed in chat.
+  warnings:
+    "900":
+      chat: "{color}{style}Automated server restart in &f{style}15 minutes{color}{style}."
+    "600":
+      chat: "{color}{style}Automated server restart in &f{style}10 minutes{color}{style}."
+    "300":
+      chat: "{color}{style}Automated server restart in &f{style}5 minutes{color}{style}."
+    "60":
+      chat: "{color}{style}Automated server restart in &f{style}1 minute{color}{style}."
+    "30":
+      chat: "{color}{style}Automated server restart in &f{style}30 seconds{color}{style}."
+    "10":
+      chat: "{color}{style}Automated server restart in &f{style}10 seconds{color}{style}."
+    "5":
+      chat: "{color}{style}Restarting in &f{style}5{color}{style}..."
+    "4":
+      chat: "{color}{style}Restarting in &f{style}4{color}{style}..."
+    "3":
+      chat: "{color}{style}Restarting in &f{style}3{color}{style}..."
+    "2":
+      chat: "{color}{style}Restarting in &f{style}2{color}{style}..."
+    "1":
+      chat: "{color}{style}Restarting in &f{style}1{color}{style}..."
+
+  # Specify a goodbye message, which is the last message sent before server restart.
+  goodbye:
+    chat: "{color}{style}Server restarting now. &f{style}See you soon!"

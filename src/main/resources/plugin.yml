@@ -1,0 +1,18 @@
+name: PossumsChatFeatures
+version: 26.1.2
+main: main.java.possumschatfeatures.PossumsChatFeatures
+api-version: "26.1"
+author: RatzBonez
+description: Welcome messages, fake joins/leaves, and scheduled restart countdowns for Moonshire.
+
+commands:
+  chatfeatures:
+    description: Manage PossumsChatFeatures.
+    usage: /chatfeatures <enable|disable|status|reload|fakejoin|fakeleave|color|style|debug>
+    permission: possumschatfeatures.admin
+    permission-message: "You do not have permission to use this command."
+
+permissions:
+  possumschatfeatures.admin:
+    description: Allows use of /chatfeatures.
+    default: op
