@@ -2,6 +2,7 @@ name: PossumsChatFeatures
 version: 26.1.2
 main: main.java.possumschatfeatures.PossumsChatFeatures
 api-version: "26.1"
+folia-supported: true
 author: RatzBonez
 description: Welcome messages, fake joins/leaves, and scheduled restart countdowns for Moonshire.
 

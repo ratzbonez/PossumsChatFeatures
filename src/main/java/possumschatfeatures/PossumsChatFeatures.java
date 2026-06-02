@@ -13,7 +13,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 import java.time.Duration;
 import java.time.LocalTime;
@@ -108,7 +108,8 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
     private long lastSecondsUntilRestart = -1;
 
     // Track scheduled debug demo tasks. (Safe cancel)
-    private final List<Integer> sampleRestartTaskIds = new ArrayList<>();
+    private ScheduledTask restartCountdownTask;
+    private final List<ScheduledTask> sampleRestartTasks = new ArrayList<>();
 
     @Override
     public void onEnable() {
@@ -129,6 +130,7 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
 
     @Override
     public void onDisable() {
+        stopRestartCountdownTask();
         cancelSampleRestartDebug();
     }
 
@@ -227,11 +229,11 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
 
     private void sendGlobalFirstJoinChat(Player newPlayer) {
         if (!isBlank(globalWelcomeMessage)) {
-            Bukkit.broadcastMessage(format(globalWelcomeMessage, newPlayer));
+            broadcastChat(format(globalWelcomeMessage, newPlayer));
         }
 
         if (!isBlank(globalWelcomeSubtitle)) {
-            Bukkit.broadcastMessage(format(globalWelcomeSubtitle, newPlayer));
+            broadcastChat(format(globalWelcomeSubtitle, newPlayer));
         }
     }
 
@@ -240,11 +242,7 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
             return;
 
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-            onlinePlayer.playSound(
-                    onlinePlayer.getLocation(),
-                    firstJoinSound,
-                    firstJoinSoundVolume,
-                    firstJoinSoundPitch);
+            playSoundSafely(onlinePlayer, firstJoinSound, firstJoinSoundVolume, firstJoinSoundPitch);
         }
     }
 
@@ -282,7 +280,18 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
     }
 
     private void startRestartCountdownTask() {
-        Bukkit.getScheduler().runTaskTimer(this, this::checkRestartCountdown, 20L, 20L);
+        stopRestartCountdownTask();
+
+        restartCountdownTask = getServer().getGlobalRegionScheduler().runAtFixedRate(this, task -> {
+            checkRestartCountdown();
+        }, 20L, 20L);
+    }
+
+    private void stopRestartCountdownTask() {
+        if (restartCountdownTask != null) {
+            restartCountdownTask.cancel();
+            restartCountdownTask = null;
+        }
     }
 
     private void checkRestartCountdown() {
@@ -359,7 +368,22 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
         if (isBlank(message))
             return;
 
-        Bukkit.broadcastMessage(colorize(message));
+        broadcastChat(colorize(message));
+    }
+
+    private void broadcastChat(String message) {
+        if (isBlank(message))
+            return;
+
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            onlinePlayer.getScheduler().run(this, task -> {
+                if (onlinePlayer.isOnline()) {
+                    onlinePlayer.sendMessage(message);
+                }
+            }, null);
+        }
+
+        getServer().getConsoleSender().sendMessage(message);
     }
 
     private void playRestartChime() {
@@ -373,11 +397,7 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
         float safePitch = clampPitch(pitch);
 
         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-            onlinePlayer.playSound(
-                    onlinePlayer.getLocation(),
-                    restartSound,
-                    restartSoundVolume,
-                    safePitch);
+            playSoundSafely(onlinePlayer, restartSound, restartSoundVolume, safePitch);
         }
     }
 
@@ -386,11 +406,24 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
         if (!restartSoundEnabled || restartSound == null || player == null)
             return;
 
-        player.playSound(
-                player.getLocation(),
-                restartSound,
-                restartSoundVolume,
-                clampPitch(restartSoundPitch));
+        playSoundSafely(player, restartSound, restartSoundVolume, clampPitch(restartSoundPitch));
+    }
+
+    private void playSoundSafely(Player player, Sound sound, float volume, float pitch) {
+        if (player == null || sound == null)
+            return;
+
+        player.getScheduler().run(this, task -> {
+            if (!player.isOnline()) {
+                return;
+            }
+
+            player.playSound(
+                    player.getLocation(),
+                    sound,
+                    volume,
+                    clampPitch(pitch));
+        }, null);
     }
 
     private void playRestartCountdownSound(int countdownSecond) {
@@ -430,7 +463,7 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
     }
 
     private void scheduleSampleRestartMessage(long delayTicks, int seconds) {
-        BukkitTask task = Bukkit.getScheduler().runTaskLater(this, () -> {
+        ScheduledTask task = getServer().getGlobalRegionScheduler().runDelayed(this, scheduledTask -> {
             RestartAnnouncement announcement = restartWarnings.get(seconds);
 
             if (announcement != null && !isBlank(announcement.chat())) {
@@ -445,11 +478,11 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
             }
         }, delayTicks);
 
-        sampleRestartTaskIds.add(task.getTaskId());
+        sampleRestartTasks.add(task);
     }
 
     private void scheduleSampleGoodbye(long delayTicks) {
-        BukkitTask task = Bukkit.getScheduler().runTaskLater(this, () -> {
+        ScheduledTask task = getServer().getGlobalRegionScheduler().runDelayed(this, scheduledTask -> {
             if (goodbyeAnnouncement != null && !isBlank(goodbyeAnnouncement.chat())) {
                 sendRestartAnnouncement(goodbyeAnnouncement, -1);
                 return;
@@ -459,7 +492,7 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
             playRestartChime();
         }, delayTicks);
 
-        sampleRestartTaskIds.add(task.getTaskId());
+        sampleRestartTasks.add(task);
     }
 
     // Fake join/leave messages
@@ -475,7 +508,7 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
             return;
         }
 
-        Bukkit.broadcastMessage(ChatColor.YELLOW + player.getName() + " joined the game");
+        broadcastChat(ChatColor.YELLOW + player.getName() + " joined the game");
     }
 
     private void sendFakeLeave(CommandSender sender) {
@@ -489,15 +522,15 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
             return;
         }
 
-        Bukkit.broadcastMessage(ChatColor.YELLOW + player.getName() + " left the game");
+        broadcastChat(ChatColor.YELLOW + player.getName() + " left the game");
     }
 
     private void cancelSampleRestartDebug() {
-        for (Integer taskId : sampleRestartTaskIds) {
-            Bukkit.getScheduler().cancelTask(taskId);
+        for (ScheduledTask task : sampleRestartTasks) {
+            task.cancel();
         }
 
-        sampleRestartTaskIds.clear();
+        sampleRestartTasks.clear();
     }
 
     private String defaultRestartChat(int seconds) {
@@ -629,14 +662,14 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
     // Helpers for color and style.
     private String normalizeColorName(String rawColorName) {
         if (rawColorName == null || rawColorName.trim().isEmpty()) {
-            return themeColorName;
+            return "aqua";
         }
 
         String normalized = rawColorName.trim().toLowerCase(Locale.ROOT).replace("-", "_");
 
         if (!AVAILABLE_COLORS.contains(normalized)) {
-            getLogger().warning("Invalid themeColor '" + rawColorName + "'. Falling back to light_purple.");
-            return themeColorName;
+            getLogger().warning("Invalid themeColor '" + rawColorName + "'. Falling back to aqua.");
+            return "aqua";
         }
 
         return normalized;
@@ -660,7 +693,7 @@ public final class PossumsChatFeatures extends JavaPlugin implements Listener, T
             case "yellow" -> ChatColor.YELLOW.toString();
             case "white" -> ChatColor.WHITE.toString();
             case "light_purple" -> ChatColor.LIGHT_PURPLE.toString();
-            default -> themeColorName.toString();
+            default -> ChatColor.AQUA.toString();
         };
     }
 
